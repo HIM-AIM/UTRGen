@@ -1,0 +1,16 @@
+torch>=2.0
+pytorch-lightning>=2.0
+transformers>=4.30
+trl>=0.7
+datasets
+pandas
+numpy
+scipy
+scikit-learn
+torchmetrics
+biopython
+viennarna
+matplotlib
+seaborn
+tqdm
+wandb

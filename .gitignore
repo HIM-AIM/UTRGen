@@ -1,0 +1,36 @@
+# Checkpoints
+*.ckpt
+ckpt/
+ckps/
+ckpts/
+checkpoints*/
+
+# Training logs
+lightning_logs/
+wandb/
+wandb_logs/
+log/
+logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Data files
+data/
+
+# Output
+output/
+*.out
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
