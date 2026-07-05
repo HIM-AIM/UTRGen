@@ -4,6 +4,8 @@ UTRGen is a unified framework for full-spectrum design of mRNA 5' UTRs based on 
 
 ## Installation
 
+Installation typically takes approximately **30 minutes** on a standard Linux workstation with a stable internet connection.
+
 ```bash
 conda create -n utrgen python=3.10
 conda activate utrgen
@@ -54,9 +56,21 @@ python pretrain.py \
 | `--checkpoint_dir` | Output directory for checkpoints |
 | `--resume_from_checkpoint` | Resume training from a checkpoint |
 
+**Expected Output:**
+
+```
+checkpoints_pretrain/
+├── UTRGen-8layer-16head-384embd-length256-...ckpt   # best (by val_loss)
+└── last.ckpt                                         # latest
+```
+
+**Reference Runtime:** ~12 days on 2× NVIDIA A100 GPUs.
+
 ### 2. Downstream Fine-tuning
 
 Attaches lightweight prediction heads (1D-CNN or MLP) to the pre-trained backbone and fine-tunes on downstream tasks with Huber loss. All scripts support loading pre-trained weights and optional encoder freezing.
+
+**Reference Runtime:** ~0.5–2 hours per fold on a single NVIDIA A40 or A100 GPU (varies by dataset size).
 
 #### TE/EL Tasks
 
@@ -81,6 +95,16 @@ python downstream_10fold_cv_train.py \
 | `--regressor` | Head type: 1=CNN, 2=ResNet, 3=MLP (default: 1) |
 | `--n_splits` | Number of CV folds (default: 10) |
 
+**Expected Output:**
+
+```
+checkpoints_downstream/
+├── HEK_sequence_te_log_utr_...csv          # per-fold metrics with mean ± std
+└── HEK_sequence_te_log_utr__epoch=200_bs=64_lr=0.0002_regressor=1_unfreeze_gpu/
+    └── fold_0..9/
+        └── gpt2-reg-*.ckpt                 # best checkpoint per fold
+```
+
 #### MRL Task
 
 Predicts Mean Ribosome Load (MRL) from synthetic 5' UTR libraries. Uses separate train/test CSV files (ranking-based split) rather than cross-validation. Supports multiple GSM datasets with different nucleotide modification conditions.
@@ -103,6 +127,15 @@ python downstream_mrl_ranking_split_finetuned.py \
 | `--pretrain_ckpt` | Pre-trained checkpoint path |
 | `--regressor` | Head type: 1=CNN, 2=ResNet, 3=MLP (default: 1) |
 
+**Expected Output:**
+
+```
+checkpoints_downstream/
+├── 4.1_train_data_GSM3130435_egfp_unmod_1_label_utr_...csv   # final metrics
+└── 4.1_train_data_GSM3130435_egfp_unmod_1_label_utr_seed42_no_pretrain_unfreeze_epoch=.../
+    └── gpt2-reg-*.ckpt                                        # top-3 checkpoints
+```
+
 #### IRES Task
 
 Fine-tunes the pre-trained model as a binary classifier to identify Internal Ribosome Entry Sites (IRES) within 5' UTRs. Uses a CNN-based classification head and 10-fold cross-validation. The `--train_ratio` parameter supports few-shot learning experiments by subsampling the training set.
@@ -124,6 +157,15 @@ python train_ires_cls_cv.py \
 | `--label_column` | Binary label column (default: `label`) |
 | `--pretrained` | Pre-trained checkpoint path |
 | `--train_ratio` | Fraction of training data (default: 1.0) |
+
+**Expected Output:**
+
+```
+checkpoints_ires/
+├── ires_merged_clean_label_classification_cv_epoch=5_bs=16_ratio=1.0.csv   # per-fold metrics with mean ± std
+└── fold_0..9/
+    └── gpt2-cls-*.ckpt                                                     # best checkpoint per fold
+```
 
 ### 3. Reinforcement Learning Fine-tuning (GRPO)
 
@@ -159,6 +201,18 @@ python train.py \
 | `--min/max_gen_length` | Generation length range |
 | `--task_name` | Task name for logging and checkpointing (required) |
 
+**Expected Output:**
+
+```
+<output_dir>/<task_name>/
+├── UTRGen-RL-*.ckpt                  # best checkpoint (by val_reward)
+├── args.json                         # CLI arguments dump
+├── rewards_over_epochs.csv           # per-epoch reward means
+└── reward_weighted_over_epochs.csv   # per-epoch weighted rewards + total
+```
+
+**Reference Runtime:** ~4.5 hours on a single NVIDIA A100 GPU.
+
 ### 4. Sequence Generation
 
 Generates de novo 5' UTR sequences from a trained model (pre-trained or RL-finetuned). Uses A/T/C/G as single-nucleotide prompts and generates autoregressively with configurable sampling parameters (top-k, top-p, temperature, repetition penalty). Outputs unique sequences in FASTA format.
@@ -184,6 +238,22 @@ python generate.py \
 | `--temperature` | Sampling temperature (>1 more random, <1 more conservative) |
 | `--repetition_penalty` | Repetition penalty (>1 reduces repetitive fragments) |
 | `--output_dir` | Output directory for FASTA files |
+
+**Expected Output:**
+
+```
+<output_dir>/
+└── *.fasta   # unique generated sequences in FASTA format
+```
+
+Example FASTA content:
+
+```
+>seq_1
+ATCGATCGATCG...
+>seq_2
+GCTAGCTAGCTA...
+```
 
 ## Data & Checkpoints
 
